@@ -2,43 +2,57 @@
 <img src="https://raw.githubusercontent.com/mertizci/browser-picker/refs/heads/main/BrowserPicker/Assets.xcassets/AppIcon.appiconset/AppIcon-128.png" width="128" />
 </p>
 
+<h1 align="center">Browser Picker</h1>
 
-# Browser Picker
+<p align="center">
+A native macOS menu bar app that becomes your <b>default browser</b> and sends every link to the right <b>browser <em>and</em> profile</b> — automatically with rules, or with a quick picker.
+</p>
 
-<a href="https://www.paypal.com/donate/?hosted_button_id=8BKTHWAHUPWPG">
-<img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal" alt="Donate via PayPal" />
-</a>
+<p align="center">
+<img src="https://img.shields.io/badge/macOS-14.0%2B-000000?logo=apple&logoColor=white" alt="macOS 14.0+" />
+<img src="https://img.shields.io/badge/Apple%20Silicon%20%2B%20Intel-Universal-555555" alt="Universal binary" />
+<img src="https://img.shields.io/badge/Signed%20%26%20Notarized-Apple-brightgreen" alt="Signed & notarized" />
+<a href="https://github.com/mertizci/browser-picker/releases/latest"><img src="https://img.shields.io/github/v/release/mertizci/browser-picker?label=download&color=blue" alt="Latest release" /></a>
+<a href="https://www.paypal.com/donate/?hosted_button_id=8BKTHWAHUPWPG"><img src="https://img.shields.io/badge/Donate-PayPal-0070ba?logo=paypal&logoColor=white" alt="Donate via PayPal" /></a>
+</p>
 
+---
 
+## Why Browser Picker?
 
-A native macOS menu bar app that acts as your **default browser** and routes every link to the right browser and profile — automatically with rules, or with a quick picker.
+Juggling a personal Chrome, a work Chrome profile, and Firefox for clients? Stop opening links in the wrong place. Browser Picker routes each link to the exact **browser and profile** you want — so work links land in your work profile, personal links in your personal one, automatically.
 
 ## Install
 
-**Homebrew (recommended):**
+> A **universal build** that runs natively on both Apple Silicon and Intel Macs (macOS 14.0+). Every release is signed with a Developer ID certificate and **notarized by Apple**, so it opens without Gatekeeper warnings.
+
+### 1. DMG — recommended
+
+1. Download `BrowserPicker-X.Y.Z.dmg` from the **[latest release](https://github.com/mertizci/browser-picker/releases/latest)**.
+2. Open the DMG and drag **Browser Picker** into your **Applications** folder.
+3. Launch it from Applications — the icon appears in your menu bar.
+
+### 2. Homebrew
 
 ```bash
 brew install --cask mertizci/tap/browser-picker
 ```
 
-**Manual:** download `BrowserPicker-X.Y.Z.dmg` from the [latest release](https://github.com/mertizci/browser-picker/releases/latest), open it, and drag **Browser Picker** into **Applications**.
-
-Both the app and the DMG are signed with a Developer ID certificate and notarized by Apple, so they open without Gatekeeper warnings.
-
 ## Features
 
-- **Menu bar control** — pick the active browser + profile (Safari, Chrome, Edge, Brave, Vivaldi, Firefox) in one click.
-- **Automatic routing rules** — match links by *URL contains*, *host equals*, or *host suffix*. First match wins; reorder by dragging.
-- **Two fallback modes** when no rule matches:
+- 🎯 **Browser + profile routing** — not just "open in Chrome", but "open in Chrome → *Work*" or "Firefox → *Client A*". Each link lands in the right account, ready to go.
+- 🧭 **Menu bar control** — pick the active browser + profile (Safari, Chrome, Edge, Brave, Vivaldi, Firefox) in one click.
+- 🔀 **Automatic routing rules** — match links by *URL contains*, *host equals*, or *host suffix*. First match wins; reorder by dragging.
+- 🪃 **Two fallback modes** when no rule matches:
   - **Silent** — open in your current menu bar selection.
   - **Picker** — prompt for the browser/profile each time.
-- **Profile discovery**
+- 👤 **Profile discovery**
   - Chromium browsers (Chrome, Edge, Brave, Vivaldi) — from each browser's `Local State`.
   - Firefox — from `profiles.ini` and Firefox **Profile Groups** (selectable profile names).
   - Safari — from `SafariTabs.db`, with a **menu scan** fallback.
-- **Guided onboarding** that requests and live-tracks the required permissions.
-- **Polished UI** — window-style menu bar popover, redesigned Settings, rule editor with live preview, built-in **FAQ** and **About**.
-- Native browser icons from installed apps, with Simple Icons SVG fallback.
+- 🧑‍🏫 **Guided onboarding** that requests and live-tracks the required permissions.
+- ✨ **Polished UI** — window-style menu bar popover, redesigned Settings, rule editor with live preview, built-in **FAQ** and **About**.
+- 🖼️ Native browser icons from installed apps, with Simple Icons SVG fallback.
 
 ## Permissions
 
@@ -51,9 +65,15 @@ On first launch an onboarding window walks you through both. After granting **Ac
 
 ## Requirements
 
-- macOS 14.0+
+**To run:**
+
+- macOS 14.0 (Sonoma) or later
+- Apple Silicon or Intel — ships as a universal binary
+
+**To build from source:**
+
 - Xcode 15+
-- An Apple Development signing certificate (stable code signature keeps the Accessibility grant across rebuilds)
+- An Apple Development signing certificate (a stable code signature keeps the Accessibility grant across rebuilds)
 
 ## Build
 
