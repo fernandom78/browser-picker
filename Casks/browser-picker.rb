@@ -15,7 +15,7 @@ cask "browser-picker" do
   desc "Menu bar default-browser router with per-profile routing rules"
   homepage "https://github.com/mertizci/browser-picker"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "BrowserPicker.app"
 
