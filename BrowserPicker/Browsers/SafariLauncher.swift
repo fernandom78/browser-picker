@@ -53,10 +53,12 @@ struct SafariLauncher {
             if targetWindow is not missing value then
                 tell application "Safari"
                     tell targetWindow
-                        make new tab with properties {URL:targetURL}
+                        set newTab to make new tab with properties {URL:targetURL}
+                        set current tab to newTab
                     end tell
                     set index of targetWindow to 1
                 end tell
+                tell application "Safari" to activate
                 return
             end if
 
