@@ -60,56 +60,58 @@ struct SafariLauncher {
                 return
             end if
 
-            -- Build candidate menu item names for opening a new profile window
-            set wantedNames to {"New " & profileMenuName & " Window"}
-            if profileMenuName is "Personal" then
-                set end of wantedNames to "New Window"
-            end if
-
             set didClick to false
-            tell application "System Events"
-                tell process "Safari"
-                    set fileMenu to menu "File" of menu bar 1
 
-                    -- 1) direct items in the File menu
-                    repeat with wanted in wantedNames
+            if profileMenuName is "Personal" then
+                -- Default profile: just open a fresh window. This avoids the
+                -- menu bar entirely, so it is independent of the system language.
+                tell application "Safari" to make new document
+                set didClick to true
+            else
+                -- Named profile: click the File-menu item that references the
+                -- profile by name. The File menu is accessed by position
+                -- (menu bar item 3) instead of the localized title "File", so
+                -- this also works on non-English systems (e.g. "Ablage" in
+                -- German). Menu items are matched by *containing* the profile
+                -- name because the surrounding text ("New … Window") is localized.
+                tell application "System Events"
+                    tell process "Safari"
+                        set fileMenu to menu 1 of menu bar item 3 of menu bar 1
+
+                        -- 1) direct items in the File menu
                         repeat with mi in (menu items of fileMenu)
                             try
-                                if name of mi is (wanted as string) then
+                                if name of mi contains profileMenuName then
                                     click mi
                                     set didClick to true
                                     exit repeat
                                 end if
                             end try
                         end repeat
-                        if didClick then exit repeat
-                    end repeat
 
-                    -- 2) one level of submenus (e.g. a "New Window" submenu listing profiles)
-                    if not didClick then
-                        repeat with mi in (menu items of fileMenu)
-                            try
-                                if (count of menus of mi) > 0 then
-                                    set subMenu to menu 1 of mi
-                                    repeat with wanted in wantedNames
+                        -- 2) one level of submenus (e.g. a "New Window" submenu listing profiles)
+                        if not didClick then
+                            repeat with mi in (menu items of fileMenu)
+                                try
+                                    if (count of menus of mi) > 0 then
+                                        set subMenu to menu 1 of mi
                                         repeat with smi in (menu items of subMenu)
                                             try
-                                                if name of smi is (wanted as string) then
+                                                if name of smi contains profileMenuName then
                                                     click smi
                                                     set didClick to true
                                                     exit repeat
                                                 end if
                                             end try
                                         end repeat
-                                        if didClick then exit repeat
-                                    end repeat
-                                end if
-                            end try
-                            if didClick then exit repeat
-                        end repeat
-                    end if
+                                    end if
+                                end try
+                                if didClick then exit repeat
+                            end repeat
+                        end if
+                    end tell
                 end tell
-            end tell
+            end if
 
             if not didClick then
                 error "Could not find a Safari menu item for profile \\"" & profileMenuName & "\\". Open Safari and verify the profile name."
