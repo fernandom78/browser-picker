@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 struct BrowserLauncher {
-    func open(url: URL, profile: BrowserProfile) async throws {
+    func open(url: URL, profile: BrowserProfile, safariProfileNames: [String] = []) async throws {
         guard profile.browser.isInstalled else {
             throw BrowserPickerError.browserNotInstalled(profile.browser)
         }
@@ -13,7 +13,7 @@ struct BrowserLauncher {
         case .gecko:
             try launchFirefox(url: url, profile: profile)
         case .webkit:
-            try SafariLauncher().open(url: url, profile: profile)
+            try SafariLauncher().open(url: url, profile: profile, allProfileNames: safariProfileNames)
         }
     }
 

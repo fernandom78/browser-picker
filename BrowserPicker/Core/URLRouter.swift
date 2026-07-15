@@ -63,9 +63,12 @@ final class URLRouter: ObservableObject {
             return
         }
 
+        let safariProfileNames = settingsStore.profiles(for: .safari)
+            .map { $0.internalName ?? $0.displayName }
+
         Task {
             do {
-                try await launcher.open(url: url, profile: profile)
+                try await launcher.open(url: url, profile: profile, safariProfileNames: safariProfileNames)
             } catch {
                 showError(error)
             }
