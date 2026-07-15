@@ -8,12 +8,17 @@ struct SafariProfileDiscovery: ProfileDiscovery {
 
         var recordsByID: [String: SafariProfileRecord] = [:]
 
+        // Primary, fully language-independent source: profile names + UUIDs read
+        // straight from SafariTabs.db (requires Full Disk Access).
         for record in SafariProfileStore.discoverProfiles() {
             recordsByID[record.id] = record
         }
 
-        // Only read Safari's menu when Safari is already running — never launch it.
-        if SafariRuntime.isRunning {
+        // Fallback only when the database is unreadable (e.g. Full Disk Access
+        // not granted). Reads Safari's menu — never launches it — and is itself
+        // language-independent. Skipped when the DB already returned profiles to
+        // avoid duplicate entries keyed by name vs. UUID.
+        if recordsByID.isEmpty, SafariRuntime.isRunning {
             for record in SafariMenuProfileScanner.discoverProfiles() {
                 recordsByID[record.id] = record
             }
