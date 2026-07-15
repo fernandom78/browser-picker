@@ -83,15 +83,19 @@ struct SafariLauncher {
             end tell
 
             if targetWindow is not missing value then
-                tell application "Safari"
-                    tell targetWindow
-                        set newTab to make new tab with properties {URL:targetURL}
-                        set current tab to newTab
+                try
+                    tell application "Safari"
+                        set newTab to make new tab at end of tabs of targetWindow with properties {URL:targetURL}
+                        set current tab of targetWindow to newTab
+                        set index of targetWindow to 1
                     end tell
-                    set index of targetWindow to 1
-                end tell
-                tell application "Safari" to activate
-                return
+                    tell application "Safari" to activate
+                    return
+                on error
+                    -- Reuse failed (e.g. the matched window can't host tabs);
+                    -- fall through and open a fresh profile window below.
+                    set targetWindow to missing value
+                end try
             end if
 
             -- Open a new window that belongs to the requested profile by clicking
