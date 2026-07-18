@@ -74,7 +74,15 @@ struct PickerPromptView: View {
     @ViewBuilder
     private func profileList(for url: URL) -> some View {
         let rows = VStack(spacing: 8) {
-            ForEach(settingsStore.profiles) { profile in
+            // `BrowserProfile.id` is only unique *within* one browser (it's
+            // a raw Local State profile key like "Default") — this list
+            // spans every browser at once, and it's common for several
+            // Chromium-based browsers to each have a profile literally
+            // keyed "Default". Keying by `\.self` (BrowserProfile is
+            // Hashable, and `browser` differs across the colliding rows)
+            // gives SwiftUI a genuinely unique identity instead of silently
+            // colliding rows/taps across different browsers.
+            ForEach(settingsStore.profiles, id: \.self) { profile in
                 profileRow(profile, url: url)
             }
         }

@@ -40,6 +40,19 @@ enum BrowserKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// CLI flag for opening a private/incognito window — not every
+    /// Chromium-engine browser uses "--incognito". Edge rebrands the
+    /// feature "InPrivate" and its CLI follows suit: passing "--incognito"
+    /// to Edge is silently ignored and opens a normal window instead
+    /// (confirmed against a real install, not assumed). Chrome, Brave, and
+    /// Opera were each confirmed to accept "--incognito" directly.
+    var chromiumPrivateFlag: String {
+        switch self {
+        case .edge: return "--inprivate"
+        default: return "--incognito"
+        }
+    }
+
     var bundleIdentifier: String {
         switch self {
         case .chrome: return "com.google.Chrome"
@@ -230,6 +243,13 @@ struct ResolvedBrowser {
     let executablePath: String
     let isInstalled: Bool
     let displayName: String
+    /// Only meaningful when `engine == .chromium`. A custom (non-built-in)
+    /// Chromium browser defaults to "--incognito" — the convention nearly
+    /// every Chromium fork follows (verified for Chrome/Brave/Opera; Edge is
+    /// the known exception, see `BrowserKind.chromiumPrivateFlag`). If some
+    /// other custom fork also renames the feature, its rules just won't
+    /// actually go private until that fork gets special-cased too.
+    let chromiumPrivateFlag: String
 }
 
 extension BrowserIdentity {
@@ -242,7 +262,8 @@ extension BrowserIdentity {
                 engine: kind.engine,
                 executablePath: kind.executablePath,
                 isInstalled: kind.isInstalled,
-                displayName: kind.displayName
+                displayName: kind.displayName,
+                chromiumPrivateFlag: kind.chromiumPrivateFlag
             )
         case .custom(let id):
             guard let custom = customBrowsers.first(where: { $0.id == id }) else { return nil }
@@ -250,7 +271,8 @@ extension BrowserIdentity {
                 engine: .chromium,
                 executablePath: custom.executablePath,
                 isInstalled: custom.isInstalled,
-                displayName: custom.displayName
+                displayName: custom.displayName,
+                chromiumPrivateFlag: "--incognito"
             )
         }
     }

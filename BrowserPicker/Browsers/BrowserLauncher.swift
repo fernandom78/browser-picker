@@ -39,11 +39,13 @@ struct BrowserLauncher {
     private func launchChromium(url: URL, profile: BrowserProfile, resolved: ResolvedBrowser, openPrivately: Bool) throws {
         let directory = profile.profilePath ?? "Default"
         var arguments = ["--profile-directory=\(directory)"]
-        // Chromium opens the incognito window inside the given profile's
+        // Chromium opens the private window inside the given profile's
         // identity (separate cookie jar, but still "signed in" as that
         // profile) — exactly the "clean tab, same identity" QA testing
-        // usually wants, rather than a fully anonymous session.
-        if openPrivately { arguments.append("--incognito") }
+        // usually wants, rather than a fully anonymous session. The flag
+        // name itself varies by browser (see `chromiumPrivateFlag`) — Edge
+        // renamed it "InPrivate" and doesn't respond to "--incognito".
+        if openPrivately { arguments.append(resolved.chromiumPrivateFlag) }
         arguments.append(url.absoluteString)
 
         let process = Process()
