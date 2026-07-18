@@ -18,6 +18,8 @@ A native macOS menu bar app that becomes your <b>default browser</b> and sends e
 
 ---
 
+> **This is a fork.** The original **Browser Picker** was created by **Mert IZCI** ([mertizci/browser-picker](https://github.com/mertizci/browser-picker)) — all credit for the core app goes to him. This fork, maintained by **Fernando Miranda**, adds Opera/Arc support, the ability to add any custom browser, and private/incognito mode routing on top of his original work.
+
 ## Why Browser Picker?
 
 Juggling a personal Chrome, a work Chrome profile, and Firefox for clients? Stop opening links in the wrong place. Browser Picker routes each link to the exact **browser and profile** you want — so work links land in your work profile, personal links in your personal one, automatically.
@@ -149,7 +151,9 @@ open "https://example.com"
 
 ## Contact
 
-Developed by **Mert IZCI** — [mertizci@gmail.com](mailto:mertizci@gmail.com).
+Original app developed by **Mert IZCI** — [mertizci@gmail.com](mailto:mertizci@gmail.com).
+
+This fork (Opera/Arc support, custom browsers, private/incognito mode) is maintained by **Fernando Miranda**.
 
 ## License
 
