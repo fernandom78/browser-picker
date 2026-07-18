@@ -28,3 +28,16 @@ targets:
         OTHER_LDFLAGS: ["-lsqlite3"]
     scheme:
       gatherCoverageData: false
+      testTargets:
+        - BrowserPickerTests
+  BrowserPickerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - BrowserPickerTests
+    dependencies:
+      - target: BrowserPicker
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic

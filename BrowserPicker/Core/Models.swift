@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-enum BrowserEngine {
+enum BrowserEngine: Equatable {
     case chromium
     case gecko
     case webkit
@@ -361,8 +361,12 @@ struct RuleMatcher: Codable, Hashable {
         case .hostEquals:
             return host == valueLower
         case .hostSuffix:
-            return host.hasSuffix(valueLower.trimmingCharacters(in: CharacterSet(charactersIn: ".")))
-                || host == valueLower.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            // Require a dot boundary, not just a trailing-character match —
+            // a bare `hasSuffix` would also match "evilcompany.com" against
+            // a "company.com" rule, since the former's raw string literally
+            // ends with the latter even though it's an unrelated domain.
+            let trimmedValue = valueLower.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            return host == trimmedValue || host.hasSuffix(".\(trimmedValue)")
         }
     }
 }

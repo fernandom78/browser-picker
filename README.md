@@ -96,6 +96,23 @@ Or open `BrowserPicker.xcodeproj` in Xcode and press ⌘R.
 
 > Signing is configured in `project.yml` (`CODE_SIGN_IDENTITY`). Ad-hoc signatures change on every build and break the Accessibility grant, so a real "Apple Development" identity is recommended.
 
+## Tests
+
+A small XCTest smoke-test suite (`BrowserPickerTests/`) covers the app's core routing/matching/decoding logic — no GUI, no real browsers, runs in under a second. Run it after any change:
+
+```bash
+xcodegen generate   # only if project.yml changed
+xcodebuild test -scheme BrowserPicker -destination 'platform=macOS'
+```
+
+Or press ⌘U in Xcode. What's covered:
+
+- **`RuleMatcherTests`** — `urlContains` / `hostEquals` / `hostSuffix` matching, including that a suffix rule for "company.com" doesn't also match an unrelated "evilcompany.com".
+- **`RuleEngineTests`** — priority ordering, skipping disabled rules, falling back to the default target, and a matched rule's `openPrivately` flag being surfaced correctly.
+- **`CodableCompatibilityTests`** — `BrowserIdentity` stays wire-compatible with old `config.json` files (a built-in browser still encodes as a plain string like `"chrome"`), and both `RoutingRule.openPrivately` and `AppSettings.customBrowsers` default correctly when decoding a config saved before those fields existed.
+- **`BrowserResolutionTests`** — per-browser private-mode flag resolution (this is the regression test for the Edge `--inprivate` vs `--incognito` bug found during development), and `BrowserIdentity.resolved(customBrowsers:)` for both built-in and custom browsers.
+- **`ChromiumLocalStateParserTests`** — parsing a real-shaped `Local State` file, including missing/malformed files and profiles with no `name` field.
+
 ## Setup
 
 1. Launch Browser Picker — the icon appears in the menu bar.
