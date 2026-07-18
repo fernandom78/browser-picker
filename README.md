@@ -41,13 +41,15 @@ brew install --cask mertizci/tap/browser-picker
 ## Features
 
 - 🎯 **Browser + profile routing** — not just "open in Chrome", but "open in Chrome → *Work*" or "Firefox → *Client A*". Each link lands in the right account, ready to go.
-- 🧭 **Menu bar control** — pick the active browser + profile (Safari, Chrome, Edge, Brave, Vivaldi, Firefox) in one click.
-- 🔀 **Automatic routing rules** — match links by *URL contains*, *host equals*, or *host suffix*. First match wins; reorder by dragging.
+- 🧭 **Menu bar control** — pick the active browser + profile (Safari, Chrome, Edge, Brave, Vivaldi, Opera, Arc, Firefox, or any custom browser you've added) in one click.
+- ➕ **Add any browser** — beyond the built-in list, point Settings → Browsers → **Add Custom Browser…** at any other Chromium-based browser's `.app` to get the same profile-aware routing, now or as new browsers show up in the future.
+- 🕶️ **Private/incognito routing** — send matched links straight to a private/incognito window, still scoped to the right browser and profile. Available per-rule, or as a one-off toggle in the manual picker.
+- 🔀 **Automatic routing rules** — match links by *URL contains*, *host equals*, or *host suffix*. First match wins; reorder by dragging. Each rule can also force private/incognito mode.
 - 🪃 **Two fallback modes** when no rule matches:
   - **Silent** — open in your current menu bar selection.
-  - **Picker** — prompt for the browser/profile each time.
+  - **Picker** — prompt for the browser/profile (with its own private-mode toggle) each time.
 - 👤 **Profile discovery**
-  - Chromium browsers (Chrome, Edge, Brave, Vivaldi) — from each browser's `Local State`.
+  - Chromium browsers (Chrome, Edge, Brave, Vivaldi, Opera, Arc, and custom additions) — from each browser's `Local State`. Custom browsers are matched against a few common Chromium folder conventions automatically, with a manual override if detection misses.
   - Firefox — from `profiles.ini` and Firefox **Profile Groups** (selectable profile names).
   - Safari — from `SafariTabs.db`, with a **menu scan** fallback.
 - 🧑‍🏫 **Guided onboarding** that requests and live-tracks the required permissions.
@@ -96,6 +98,18 @@ Or open `BrowserPicker.xcodeproj` in Xcode and press ⌘R.
 4. Pick your default browser and profile.
 5. Open **Settings → Rules** to add routing rules (e.g. *URL contains `r2o` → Firefox · Work*).
 
+## Custom browsers
+
+Not every browser ships built in — Settings → Browsers → **Add Custom Browser…** lets you point at any other browser's `.app` (e.g. one not on the built-in Chrome/Edge/Brave/Vivaldi/Opera/Arc list). Custom browsers are treated as Chromium-based, since that covers virtually every browser worth adding beyond the built-in list.
+
+- **Profile discovery** tries a few common Chromium folder conventions under `~/Library/Application Support` automatically. If a custom browser's profiles aren't detected, use **Set Profile Location…** on its card to point directly at its `Local State` file.
+- **Private/incognito mode** for a custom browser defaults to the `--incognito` flag, which the large majority of Chromium forks use. A few (Microsoft Edge, built in, is a known example) rename the feature and use a different flag — if a custom addition turns out to do the same, its rules just won't actually go private until that's added as a special case.
+- Removing a custom browser also removes any rules pointing at it.
+
+## Private / incognito mode
+
+Any routing rule can be set to open in a private/incognito window (still scoped to the rule's chosen browser + profile), and the manual picker has its own independent private-mode toggle for one-off use. One caveat: **Safari's private browsing isn't scoped per-profile** the way Chromium's incognito is, so a private pick in Safari just opens *a* private window rather than one tied to a specific profile.
+
 ## Configuration
 
 Settings are stored as JSON at:
@@ -129,6 +143,7 @@ open "https://example.com"
 ## Troubleshooting
 
 - **Accessibility shows "not granted" after granting** — quit and reopen the app (use *Quit & Reopen*); macOS applies it only on a fresh launch.
+- **Accessibility still shows "not granted" even after toggling it off/on and Quit & Reopen** — this usually means stale entries from rebuilding with an ad-hoc signature (each rebuild counts as a "new" app to macOS's permission system). Fix: quit the app, run `tccutil reset Accessibility com.browserpicker.app` in Terminal, relaunch, and grant Accessibility again from a clean slate.
 - **Safari profiles missing** — grant Full Disk Access, or open Safari and use *Scan Safari Profiles* in Settings → Browsers.
 - **App icon looks blank** — quit/reopen; if it persists, log out and back in to clear the macOS icon cache.
 
