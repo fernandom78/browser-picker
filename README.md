@@ -19,6 +19,8 @@ A native macOS menu bar app that becomes your <b>default browser</b> and sends e
 ---
 
 > **This is a fork.** The original **Browser Picker** was created by **Mert IZCI** ([mertizci/browser-picker](https://github.com/mertizci/browser-picker)) — all credit for the core app goes to him. This fork, maintained by **Fernando Miranda**, adds Opera/Arc support, the ability to add any custom browser, and private/incognito mode routing on top of his original work.
+>
+> 📦 **[Download this fork's build](https://github.com/fernandom78/browser-picker/releases/download/v1.0.5-fmiranda/BrowserPicker-custom-1.0.5.zip)** — not signed/notarized, so right-click the app → **Open** on first launch instead of double-clicking.
 
 ## Why Browser Picker?
 
@@ -29,6 +31,8 @@ Juggling a personal Chrome, a work Chrome profile, and Firefox for clients? Stop
 > A **universal build** that runs natively on both Apple Silicon and Intel Macs (macOS 14.0+). Every release is signed with a Developer ID certificate and **notarized by Apple**, so it opens without Gatekeeper warnings.
 
 ### 1. DMG — recommended
+
+> ⚠️ This DMG is the **original, unmodified** Browser Picker from upstream — it does **not** include this fork's Opera/Arc, custom-browser, or private-mode features. For those, use [this fork's build](https://github.com/fernandom78/browser-picker/releases/download/v1.0.5-fmiranda/BrowserPicker-custom-1.0.5.zip) instead.
 
 1. Download `BrowserPicker-X.Y.Z.dmg` from the **[latest release](https://github.com/mertizci/browser-picker/releases/latest)**.
 2. Open the DMG and drag **Browser Picker** into your **Applications** folder.
