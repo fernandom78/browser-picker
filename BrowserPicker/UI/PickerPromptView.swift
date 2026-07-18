@@ -6,6 +6,7 @@ struct PickerPromptView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedTarget: RouteTarget?
+    @State private var openPrivately = false
 
     private var url: URL? { urlRouter.pendingPickerURL }
 
@@ -28,6 +29,9 @@ struct PickerPromptView: View {
         }
         .onAppear {
             selectedTarget = settingsStore.settings.defaultTarget
+            // Reset each time the picker appears — a one-off private pick
+            // shouldn't silently carry over to the next link.
+            openPrivately = false
             bringWindowToFront()
         }
     }
@@ -46,6 +50,10 @@ struct PickerPromptView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
+
+            Toggle("Open in private/incognito window", isOn: $openPrivately)
+                .toggleStyle(.checkbox)
+                .font(.caption)
 
             profileList(for: url)
 
@@ -86,14 +94,14 @@ struct PickerPromptView: View {
         let target = RouteTarget(browser: profile.browser, profileId: profile.id)
         Button {
             selectedTarget = target
-            urlRouter.completePickerSelection(url: url, target: target)
+            urlRouter.completePickerSelection(url: url, target: target, openPrivately: openPrivately)
         } label: {
             HStack(spacing: 12) {
                 ProfileIconView(profile: profile, size: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(profile.displayName)
                         .font(.headline)
-                    Text(profile.browser.displayName)
+                    Text(settingsStore.displayName(for: profile.browser))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

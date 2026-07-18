@@ -1,16 +1,27 @@
 import Foundation
 
 struct SafariLauncher {
-    func open(url: URL, profile: BrowserProfile, allProfileNames: [String] = []) throws {
-        let menuName = profile.internalName ?? profile.displayName
-        let isDefault = profile.id == SafariProfileRecord.defaultID
-        let otherProfileNames = allProfileNames.filter { $0 != menuName }
-        let script = appleScript(
-            urlString: url.absoluteString,
-            menuName: menuName,
-            otherProfileNames: otherProfileNames,
-            isDefault: isDefault
-        )
+    /// - Parameter openPrivately: Safari's private browsing is a single
+    ///   global mode, not scoped per-profile the way Chromium's incognito
+    ///   is — there's no "private window for profile X". So when true, this
+    ///   takes a separate, simpler path (`privateWindowAppleScript`) that
+    ///   just opens *a* private window via the File menu, skipping the
+    ///   profile-window matching/reuse logic below entirely.
+    func open(url: URL, profile: BrowserProfile, allProfileNames: [String] = [], openPrivately: Bool = false) throws {
+        let script: String
+        if openPrivately {
+            script = privateWindowAppleScript(urlString: url.absoluteString)
+        } else {
+            let menuName = profile.internalName ?? profile.displayName
+            let isDefault = profile.id == SafariProfileRecord.defaultID
+            let otherProfileNames = allProfileNames.filter { $0 != menuName }
+            script = appleScript(
+                urlString: url.absoluteString,
+                menuName: menuName,
+                otherProfileNames: otherProfileNames,
+                isDefault: isDefault
+            )
+        }
 
         let process = Process()
         let errorPipe = Pipe()
@@ -27,6 +38,50 @@ struct SafariLauncher {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             throw BrowserPickerError.launchFailed(message?.isEmpty == false ? message! : "Safari automation failed. Grant Accessibility access in System Settings.")
         }
+    }
+
+    /// Opens a new Private Browsing window via the File menu and navigates
+    /// it to `urlString`. Matches the menu item by containing "Private"
+    /// (like the profile-window logic matches by profile name) — this
+    /// assumes an English-language system menu, since "Private" itself is
+    /// Apple's fixed, localized menu string rather than user-chosen text.
+    private func privateWindowAppleScript(urlString: String) -> String {
+        let escapedURL = escapeAppleScript(urlString)
+        return """
+        on run
+            set targetURL to "\(escapedURL)"
+
+            tell application "Safari" to activate
+            delay 0.4
+
+            set didClick to false
+            tell application "System Events"
+                tell process "Safari"
+                    set fileMenu to menu 1 of menu bar item 3 of menu bar 1
+                    repeat with mi in (menu items of fileMenu)
+                        try
+                            if name of mi contains "Private" then
+                                click mi
+                                set didClick to true
+                                exit repeat
+                            end if
+                        end try
+                    end repeat
+                end tell
+            end tell
+
+            if not didClick then
+                error "Could not find Safari's \\"New Private Window\\" menu item."
+            end if
+
+            delay 0.6
+            tell application "Safari"
+                if (count of windows) > 0 then
+                    set URL of current tab of front window to targetURL
+                end if
+            end tell
+        end run
+        """
     }
 
     private func appleScript(

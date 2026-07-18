@@ -209,6 +209,7 @@ struct StatusBanner: View {
 }
 
 struct ProfileSummaryRow: View {
+    @EnvironmentObject private var settingsStore: SettingsStore
     let profile: BrowserProfile
     var showsChevron = false
 
@@ -218,7 +219,7 @@ struct ProfileSummaryRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(profile.displayName)
                     .font(.body.weight(.medium))
-                Text(profile.browser.displayName)
+                Text(settingsStore.displayName(for: profile.browser))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

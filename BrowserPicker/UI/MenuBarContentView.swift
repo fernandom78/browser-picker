@@ -73,7 +73,7 @@ struct MenuBarContentView: View {
                 Text(activeProfile?.displayName ?? "Browser Picker")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
-                Text(activeProfile.map { "\($0.browser.displayName) · active" } ?? "No profile selected")
+                Text(activeProfile.map { "\(settingsStore.displayName(for: $0.browser)) · active" } ?? "No profile selected")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -104,7 +104,9 @@ struct MenuBarContentView: View {
 
     @ViewBuilder
     private var profileMenus: some View {
-        ForEach(BrowserKind.allCases) { browser in
+        // Built-ins plus any browsers the user added via "Add Custom
+        // Browser…" — both are just `BrowserIdentity` values here.
+        ForEach(settingsStore.allBrowserIdentities, id: \.self) { browser in
             let profiles = settingsStore.profiles(for: browser)
             if !profiles.isEmpty {
                 Menu {
@@ -125,7 +127,7 @@ struct MenuBarContentView: View {
                 } label: {
                     HStack(spacing: 10) {
                         BrowserIconView(browser: browser, size: 18)
-                        Text(browser.displayName)
+                        Text(settingsStore.displayName(for: browser))
                             .font(.system(size: 13))
                         Spacer(minLength: 0)
                         if activeProfile?.browser == browser {

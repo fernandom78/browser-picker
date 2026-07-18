@@ -34,7 +34,7 @@ struct SafariProfileDiscovery: ProfileDiscovery {
                 BrowserProfile(
                     id: record.id,
                     displayName: record.displayName,
-                    browser: .safari,
+                    browser: .builtIn(.safari),
                     profilePath: record.id,
                     internalName: record.menuName
                 )

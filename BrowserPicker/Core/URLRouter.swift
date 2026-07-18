@@ -37,15 +37,18 @@ final class URLRouter: ObservableObject {
             return
         }
 
-        let target = ruleEngine.resolveTarget(for: context, settings: settings)
-        open(url: url, target: target)
+        let (target, openPrivately) = ruleEngine.resolve(for: context, settings: settings)
+        open(url: url, target: target, openPrivately: openPrivately)
     }
 
-    func completePickerSelection(url: URL, target: RouteTarget) {
+    /// - Parameter openPrivately: from the manual picker's own private-mode
+    ///   toggle (see `PickerPromptView`) — a manual pick has no rule to
+    ///   inherit the flag from, so the caller supplies it directly.
+    func completePickerSelection(url: URL, target: RouteTarget, openPrivately: Bool = false) {
         pendingPickerURL = nil
         pendingPickerContext = nil
         PickerWindowController.shared.close()
-        open(url: url, target: target)
+        open(url: url, target: target, openPrivately: openPrivately)
     }
 
     func cancelPicker() {
@@ -54,7 +57,7 @@ final class URLRouter: ObservableObject {
         PickerWindowController.shared.close()
     }
 
-    func open(url: URL, target: RouteTarget) {
+    func open(url: URL, target: RouteTarget, openPrivately: Bool = false) {
         // A link is being routed to a browser — never let our own windows steal focus.
         SettingsWindowController.shared.hide()
 
@@ -63,12 +66,18 @@ final class URLRouter: ObservableObject {
             return
         }
 
-        let safariProfileNames = settingsStore.profiles(for: .safari)
+        let safariProfileNames = settingsStore.profiles(for: .builtIn(.safari))
             .map { $0.internalName ?? $0.displayName }
 
         Task {
             do {
-                try await launcher.open(url: url, profile: profile, safariProfileNames: safariProfileNames)
+                try await launcher.open(
+                    url: url,
+                    profile: profile,
+                    customBrowsers: settingsStore.settings.customBrowsers,
+                    openPrivately: openPrivately,
+                    safariProfileNames: safariProfileNames
+                )
             } catch {
                 showError(error)
             }

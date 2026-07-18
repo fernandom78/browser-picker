@@ -11,8 +11,29 @@ enum BrowserIconProvider {
         return fallbackIcon(for: browser, size: size)
     }
 
-    static func icon(for profile: BrowserProfile, size: CGFloat = 20) -> NSImage {
-        icon(for: profile.browser, size: size)
+    /// - Parameter customBrowsers: the current `AppSettings.customBrowsers`,
+    ///   needed when `identity` is a `.custom` browser — it has no
+    ///   `BrowserKind`, so its icon comes from its own resolved app path
+    ///   instead of the `BrowserKind`-based lookup below.
+    static func icon(for identity: BrowserIdentity, customBrowsers: [CustomBrowser] = [], size: CGFloat = 20) -> NSImage {
+        switch identity {
+        case .builtIn(let kind):
+            return icon(for: kind, size: size)
+        case .custom(let id):
+            if let custom = customBrowsers.first(where: { $0.id == id }),
+               custom.isInstalled {
+                let image = NSWorkspace.shared.icon(forFile: custom.appPath)
+                image.size = NSSize(width: size, height: size)
+                return image
+            }
+            let image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Custom browser") ?? NSImage(size: NSSize(width: size, height: size))
+            image.size = NSSize(width: size, height: size)
+            return image
+        }
+    }
+
+    static func icon(for profile: BrowserProfile, customBrowsers: [CustomBrowser] = [], size: CGFloat = 20) -> NSImage {
+        icon(for: profile.browser, customBrowsers: customBrowsers, size: size)
     }
 
     private static func fallbackIcon(for browser: BrowserKind, size: CGFloat) -> NSImage {
@@ -22,7 +43,7 @@ enum BrowserIconProvider {
 
         let symbolName: String
         switch browser {
-        case .chrome, .edge, .brave, .vivaldi: symbolName = "globe"
+        case .chrome, .edge, .brave, .vivaldi, .opera, .arc: symbolName = "globe"
         case .firefox: symbolName = "flame"
         case .safari: symbolName = "safari"
         }
@@ -54,11 +75,14 @@ enum BrowserIconProvider {
 }
 
 struct BrowserIconView: View {
-    let browser: BrowserKind
+    // See ProfileIconView below — same reasoning for reading the environment
+    // instead of threading a `customBrowsers` parameter through call sites.
+    @EnvironmentObject private var settingsStore: SettingsStore
+    let browser: BrowserIdentity
     var size: CGFloat = 20
 
     var body: some View {
-        Image(nsImage: BrowserIconProvider.icon(for: browser, size: size))
+        Image(nsImage: BrowserIconProvider.icon(for: browser, customBrowsers: settingsStore.settings.customBrowsers, size: size))
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size, height: size)
@@ -66,11 +90,15 @@ struct BrowserIconView: View {
 }
 
 struct ProfileIconView: View {
+    // Read from the environment (already injected at every window root)
+    // rather than adding a `customBrowsers` parameter to every call site —
+    // this view only needs it to resolve `.custom` browser icons.
+    @EnvironmentObject private var settingsStore: SettingsStore
     let profile: BrowserProfile
     var size: CGFloat = 20
 
     var body: some View {
-        Image(nsImage: BrowserIconProvider.icon(for: profile, size: size))
+        Image(nsImage: BrowserIconProvider.icon(for: profile, customBrowsers: settingsStore.settings.customBrowsers, size: size))
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size, height: size)

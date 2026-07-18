@@ -8,8 +8,9 @@ struct RuleEditorView: View {
     @State private var enabled: Bool
     @State private var matcherKind: RuleMatcherKind
     @State private var matcherValue: String
-    @State private var selectedBrowser: BrowserKind
+    @State private var selectedBrowser: BrowserIdentity
     @State private var selectedProfileId: String
+    @State private var openPrivately: Bool
     @State private var showDeleteConfirmation = false
 
     private let existingID: UUID?
@@ -23,8 +24,9 @@ struct RuleEditorView: View {
         _enabled = State(initialValue: rule?.enabled ?? true)
         _matcherKind = State(initialValue: rule?.matcher.kind ?? .urlContains)
         _matcherValue = State(initialValue: rule?.matcher.value ?? "")
-        _selectedBrowser = State(initialValue: rule?.target.browser ?? .firefox)
+        _selectedBrowser = State(initialValue: rule?.target.browser ?? .builtIn(.firefox))
         _selectedProfileId = State(initialValue: rule?.target.profileId ?? "")
+        _openPrivately = State(initialValue: rule?.openPrivately ?? false)
         self.onSave = onSave
     }
 
@@ -76,12 +78,16 @@ struct RuleEditorView: View {
                     }
 
                     editorSection(title: "Open in", subtitle: "Pick the browser and profile for matched links.", icon: "arrow.up.forward.app") {
+                        // A menu picker rather than segmented: the list now
+                        // includes any custom browsers the user has added,
+                        // so it's no longer a small fixed set that fits a
+                        // segmented control comfortably.
                         Picker("Browser", selection: $selectedBrowser) {
-                            ForEach(BrowserKind.allCases) { browser in
-                                Text(browser.displayName).tag(browser)
+                            ForEach(settingsStore.allBrowserIdentities, id: \.self) { browser in
+                                Text(settingsStore.displayName(for: browser)).tag(browser)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.menu)
                         .labelsHidden()
                         .onChange(of: selectedBrowser) { _, newValue in
                             resolveProfileSelection(for: newValue)
@@ -104,6 +110,11 @@ struct RuleEditorView: View {
                                 }
                             }
                         }
+                    }
+
+                    editorSection(title: "Private mode", subtitle: "Open matched links in a private/incognito window.", icon: "eyeglasses") {
+                        Toggle("Open in private/incognito window", isOn: $openPrivately)
+                            .toggleStyle(.switch)
                     }
                 }
                 .padding(24)
@@ -175,15 +186,24 @@ struct RuleEditorView: View {
                 if let profile = settingsStore.profiles(for: selectedBrowser).first(where: { $0.id == selectedProfileId }) {
                     HStack(spacing: 6) {
                         ProfileIconView(profile: profile, size: 16)
-                        Text("\(profile.browser.displayName) · \(profile.displayName)")
+                        Text("\(settingsStore.displayName(for: profile.browser)) · \(profile.displayName)")
                             .font(.caption.weight(.medium))
                             .lineLimit(1)
                     }
                 } else {
-                    Text("\(selectedBrowser.displayName) · …")
+                    Text("\(settingsStore.displayName(for: selectedBrowser)) · …")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            if openPrivately {
+                Label("Private", systemImage: "eyeglasses")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
             Spacer(minLength: 0)
         }
@@ -273,9 +293,9 @@ struct RuleEditorView: View {
             && !selectedProfileId.isEmpty
     }
 
-    private func resolveProfileSelection(for browser: BrowserKind? = nil) {
-        let browserKind = browser ?? selectedBrowser
-        let available = settingsStore.profiles(for: browserKind)
+    private func resolveProfileSelection(for browser: BrowserIdentity? = nil) {
+        let identity = browser ?? selectedBrowser
+        let available = settingsStore.profiles(for: identity)
 
         if available.contains(where: { $0.id == selectedProfileId }) {
             return
@@ -304,7 +324,8 @@ struct RuleEditorView: View {
             enabled: enabled,
             priority: existingPriority ?? 0,
             matcher: RuleMatcher(kind: matcherKind, value: matcherValue.trimmingCharacters(in: .whitespaces)),
-            target: RouteTarget(browser: selectedBrowser, profileId: selectedProfileId)
+            target: RouteTarget(browser: selectedBrowser, profileId: selectedProfileId),
+            openPrivately: openPrivately
         )
         onSave(rule)
         dismiss()
@@ -312,6 +333,7 @@ struct RuleEditorView: View {
 }
 
 private struct ProfilePickerRow: View {
+    @EnvironmentObject private var settingsStore: SettingsStore
     let profile: BrowserProfile
     let isSelected: Bool
     let action: () -> Void
@@ -323,7 +345,7 @@ private struct ProfilePickerRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(profile.displayName)
                         .font(.body.weight(.medium))
-                    Text(profile.browser.displayName)
+                    Text(settingsStore.displayName(for: profile.browser))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

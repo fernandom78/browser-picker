@@ -33,7 +33,7 @@ final class SettingsStore: ObservableObject {
     }
 
     func reloadProfiles() {
-        profiles = ProfileDiscoveryService.discoverAll()
+        profiles = ProfileDiscoveryService.discoverAll(customBrowsers: settings.customBrowsers)
         migrateLegacySafariTargets()
         ensureDefaultTargetIsValid()
         PermissionMonitor.shared.refresh()
@@ -43,7 +43,7 @@ final class SettingsStore: ObservableObject {
     func rescanSafariProfilesFromMenu() {
         guard SafariRuntime.isRunning else { return }
 
-        var safariProfiles = profiles.filter { $0.browser != .safari }
+        var safariProfiles = profiles.filter { $0.browser != .builtIn(.safari) }
         var recordsByID: [String: SafariProfileRecord] = [:]
 
         for record in SafariProfileStore.discoverProfiles() {
@@ -67,7 +67,7 @@ final class SettingsStore: ObservableObject {
                 BrowserProfile(
                     id: $0.id,
                     displayName: $0.displayName,
-                    browser: .safari,
+                    browser: .builtIn(.safari),
                     profilePath: $0.id,
                     internalName: $0.menuName
                 )
@@ -144,29 +144,77 @@ final class SettingsStore: ObservableObject {
         }
 
         // Legacy Safari default id from early builds.
-        if target.browser == .safari && target.profileId == "safari-default" {
-            return profiles.first { $0.browser == .safari && $0.id == SafariProfileRecord.defaultID }
-                ?? profiles.first { $0.browser == .safari }
+        if target.browser == .builtIn(.safari) && target.profileId == "safari-default" {
+            return profiles.first { $0.browser == .builtIn(.safari) && $0.id == SafariProfileRecord.defaultID }
+                ?? profiles.first { $0.browser == .builtIn(.safari) }
         }
 
         return nil
     }
 
-    func profiles(for browser: BrowserKind) -> [BrowserProfile] {
+    func profiles(for browser: BrowserIdentity) -> [BrowserProfile] {
         profiles.filter { $0.browser == browser }
+    }
+
+    /// Human-readable name for a browser identity — resolves `.custom`
+    /// against the current custom-browser list so UI labels never show a
+    /// raw UUID, even for a `.custom` id that no longer has a matching
+    /// `CustomBrowser` (e.g. removed after a rule referencing it was saved).
+    func displayName(for identity: BrowserIdentity) -> String {
+        switch identity {
+        case .builtIn(let kind): return kind.displayName
+        case .custom(let id):
+            return settings.customBrowsers.first(where: { $0.id == id })?.displayName ?? "Custom Browser"
+        }
+    }
+
+    /// Every browser selectable in a rule/picker: the fixed built-ins plus
+    /// whatever the user has added via "Add Custom Browser…".
+    var allBrowserIdentities: [BrowserIdentity] {
+        BrowserKind.allCases.map(BrowserIdentity.builtIn)
+            + settings.customBrowsers.map { .custom($0.id) }
+    }
+
+    /// Adds a user-picked browser app and immediately re-discovers profiles
+    /// so it shows up in rule/picker lists without a manual refresh.
+    func addCustomBrowser(_ browser: CustomBrowser) {
+        updateSettings { $0.customBrowsers.append(browser) }
+        reloadProfiles()
+    }
+
+    /// Updates a custom browser's fields in place (e.g. after the user sets
+    /// a manual "Local State" override path) and re-discovers profiles.
+    func updateCustomBrowser(_ browser: CustomBrowser) {
+        updateSettings { settings in
+            guard let index = settings.customBrowsers.firstIndex(where: { $0.id == browser.id }) else { return }
+            settings.customBrowsers[index] = browser
+        }
+        reloadProfiles()
+    }
+
+    /// Removes a custom browser and any rules/default-target pointing at it,
+    /// so the settings file never references a browser id nothing knows how
+    /// to launch anymore.
+    func removeCustomBrowser(id: UUID) {
+        let identity = BrowserIdentity.custom(id)
+        updateSettings { settings in
+            settings.customBrowsers.removeAll { $0.id == id }
+            settings.rules.removeAll { $0.target.browser == identity }
+        }
+        reloadProfiles()
     }
 
     private func migrateLegacySafariTargets() {
         var changed = false
 
-        if settings.defaultTarget.browser == .safari,
+        if settings.defaultTarget.browser == .builtIn(.safari),
            settings.defaultTarget.profileId == "safari-default" {
             settings.defaultTarget.profileId = SafariProfileRecord.defaultID
             changed = true
         }
 
         for index in settings.rules.indices {
-            if settings.rules[index].target.browser == .safari,
+            if settings.rules[index].target.browser == .builtIn(.safari),
                settings.rules[index].target.profileId == "safari-default" {
                 settings.rules[index].target.profileId = SafariProfileRecord.defaultID
                 changed = true
@@ -179,10 +227,10 @@ final class SettingsStore: ObservableObject {
     private func ensureDefaultTargetIsValid() {
         if profile(for: settings.defaultTarget) != nil { return }
 
-        if settings.defaultTarget.browser == .safari,
+        if settings.defaultTarget.browser == .builtIn(.safari),
            settings.defaultTarget.profileId == "safari-default",
-           let safariDefault = profiles.first(where: { $0.browser == .safari && $0.id == SafariProfileRecord.defaultID }) {
-            settings.defaultTarget = RouteTarget(browser: .safari, profileId: safariDefault.id)
+           let safariDefault = profiles.first(where: { $0.browser == .builtIn(.safari) && $0.id == SafariProfileRecord.defaultID }) {
+            settings.defaultTarget = RouteTarget(browser: .builtIn(.safari), profileId: safariDefault.id)
             save()
             return
         }

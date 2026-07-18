@@ -61,7 +61,7 @@ struct FirefoxProfileDiscovery: ProfileDiscovery {
                 byRelativePath[relativePath] = BrowserProfile(
                     id: relativePath,
                     displayName: displayName,
-                    browser: .firefox,
+                    browser: .builtIn(.firefox),
                     profilePath: directory.path,
                     internalName: displayName
                 )
@@ -140,7 +140,7 @@ struct FirefoxProfileDiscovery: ProfileDiscovery {
         return BrowserProfile(
             id: relativePath,
             displayName: displayName,
-            browser: .firefox,
+            browser: .builtIn(.firefox),
             profilePath: fullPath,
             internalName: iniName
         )

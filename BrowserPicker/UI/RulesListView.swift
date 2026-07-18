@@ -206,23 +206,34 @@ private struct RuleCardView: View {
 
     @ViewBuilder
     private var destinationRow: some View {
-        if let profile = settingsStore.profile(for: rule.target) {
-            HStack(spacing: 8) {
-                ProfileIconView(profile: profile, size: 18)
-                Text("\(profile.browser.displayName) · \(profile.displayName)")
-                    .font(.caption.weight(.medium))
+        HStack(spacing: 8) {
+            if let profile = settingsStore.profile(for: rule.target) {
+                HStack(spacing: 8) {
+                    ProfileIconView(profile: profile, size: 18)
+                    Text("\(settingsStore.displayName(for: profile.browser)) · \(profile.displayName)")
+                        .font(.caption.weight(.medium))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.primary.opacity(0.04), in: Capsule())
+            } else {
+                Label {
+                    Text("\(settingsStore.displayName(for: rule.target.browser)) · \(rule.target.profileId)")
+                        .font(.caption)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .foregroundStyle(.orange)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.04), in: Capsule())
-        } else {
-            Label {
-                Text("\(rule.target.browser.displayName) · \(rule.target.profileId)")
-                    .font(.caption)
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
+
+            if rule.openPrivately {
+                Label("Private", systemImage: "eyeglasses")
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.04), in: Capsule())
+                    .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.orange)
         }
     }
 

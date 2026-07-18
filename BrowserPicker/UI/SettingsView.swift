@@ -241,13 +241,22 @@ private struct BrowsersSettingsTab: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 260)
             } else {
-                ForEach(BrowserKind.allCases) { browser in
+                // Built-ins and custom browsers are both just
+                // `BrowserIdentity` values here — one loop covers both, same
+                // as the menu bar's profile switcher.
+                ForEach(settingsStore.allBrowserIdentities, id: \.self) { browser in
                     let profiles = settingsStore.profiles(for: browser)
                     if !profiles.isEmpty {
-                        BrowserProfilesCard(browser: browser, profiles: profiles)
+                        BrowserProfilesCard(
+                            browser: browser,
+                            title: settingsStore.displayName(for: browser),
+                            profiles: profiles
+                        )
                     }
                 }
             }
+
+            customBrowsersCard
 
             safariPermissionsCard
 
@@ -359,15 +368,149 @@ private struct BrowsersSettingsTab: View {
             }
         }
     }
+
+    /// Lists every user-added browser regardless of whether it currently has
+    /// discovered profiles, so a custom browser that's uninstalled or whose
+    /// "Local State" auto-detection failed can still be managed (given a
+    /// manual override path, or removed) rather than silently disappearing
+    /// from the tab the way an uninstalled built-in browser would.
+    private var customBrowsersCard: some View {
+        SettingsCard(
+            title: "Custom Browsers",
+            subtitle: "Browsers you've added manually, beyond the built-in list above."
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                if settingsStore.settings.customBrowsers.isEmpty {
+                    Text("No custom browsers added yet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(settingsStore.settings.customBrowsers.enumerated()), id: \.element.id) { index, custom in
+                            CustomBrowserRow(
+                                custom: custom,
+                                onSetOverride: { presentLocalStateOverridePanel(for: custom) },
+                                onRemove: { settingsStore.removeCustomBrowser(id: custom.id) }
+                            )
+                            .padding(.vertical, 8)
+
+                            if index < settingsStore.settings.customBrowsers.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+
+                Button("Add Custom Browser…", action: presentAddCustomBrowserPanel)
+                    .buttonStyle(.bordered)
+            }
+        }
+    }
+
+    private func presentAddCustomBrowserPanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Browser App"
+        panel.message = "Pick the .app for the browser you want to add."
+        panel.allowedContentTypes = [.application]
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        // Bundle name is what the app calls itself (e.g. "Opera"), which
+        // reads better than a raw filename if that ever differs.
+        let displayName = Bundle(url: url)?.infoDictionary?["CFBundleName"] as? String
+            ?? url.deletingPathExtension().lastPathComponent
+
+        settingsStore.addCustomBrowser(CustomBrowser(displayName: displayName, appPath: url.path))
+    }
+
+    private func presentLocalStateOverridePanel(for custom: CustomBrowser) {
+        let panel = NSOpenPanel()
+        panel.title = "Choose \u{201C}Local State\u{201D} File"
+        panel.message = "If \(custom.displayName)'s profiles weren't found automatically, locate its \u{201C}Local State\u{201D} file (inside its folder under ~/Library/Application Support) to fix profile detection."
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support")
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        var updated = custom
+        updated.localStateOverridePath = url.path
+        settingsStore.updateCustomBrowser(updated)
+    }
+}
+
+private struct CustomBrowserRow: View {
+    let custom: CustomBrowser
+    let onSetOverride: () -> Void
+    let onRemove: () -> Void
+    @State private var showRemoveConfirmation = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: appIcon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(custom.displayName)
+                    .font(.body.weight(.medium))
+                if !custom.isInstalled {
+                    Text("Not installed at \(custom.appPath)")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                } else if custom.localStateOverridePath != nil {
+                    Text("Using a manual profile data location")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+
+            Button("Set Profile Location…", action: onSetOverride)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+            Button(role: .destructive) {
+                showRemoveConfirmation = true
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+        }
+        .confirmationDialog(
+            "Remove \u{201C}\(custom.displayName)\u{201D}?",
+            isPresented: $showRemoveConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive, action: onRemove)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Any rules pointing at this browser will also be removed.")
+        }
+    }
+
+    private var appIcon: NSImage {
+        let image = NSWorkspace.shared.icon(forFile: custom.appPath)
+        image.size = NSSize(width: 28, height: 28)
+        return image
+    }
 }
 
 private struct BrowserProfilesCard: View {
-    let browser: BrowserKind
+    let browser: BrowserIdentity
+    let title: String
     let profiles: [BrowserProfile]
 
     var body: some View {
         SettingsCard(
-            title: browser.displayName,
+            title: title,
             subtitle: "\(profiles.count) profile\(profiles.count == 1 ? "" : "s") detected"
         ) {
             VStack(spacing: 0) {
