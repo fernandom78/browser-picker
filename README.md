@@ -98,7 +98,11 @@ Or open `BrowserPicker.xcodeproj` in Xcode and press ⌘R.
 
 ## Tests
 
-A small XCTest smoke-test suite (`BrowserPickerTests/`) covers the app's core routing/matching/decoding logic — no GUI, no real browsers, runs in under a second. Run it after any change:
+A small XCTest smoke-test suite (`BrowserPickerTests/`) covers the app's core routing/matching/decoding logic — no GUI, no real browsers, runs in under a second.
+
+**Runs automatically in CI** — [`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs the full suite on every push and pull request targeting `main`, on GitHub's own macOS runners, so a regression gets caught before it merges.
+
+To run it yourself after any change:
 
 ```bash
 xcodegen generate   # only if project.yml changed
