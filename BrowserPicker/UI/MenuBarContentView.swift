@@ -4,7 +4,6 @@ struct MenuBarContentView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var permissions: PermissionMonitor
-    @EnvironmentObject private var updateController: UpdateController
     @Environment(\.dismiss) private var dismiss
 
     private var activeProfile: BrowserProfile? {
@@ -179,11 +178,6 @@ struct MenuBarContentView: View {
                 settingsStore: settingsStore,
                 appState: appState
             )
-        }
-
-        MenuRow(title: "Check for Updates…", systemImage: "arrow.down.circle") {
-            dismiss()
-            updateController.checkForUpdates(silent: false)
         }
 
         MenuRow(title: "FAQ", systemImage: "questionmark.circle") {
