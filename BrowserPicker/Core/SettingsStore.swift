@@ -33,7 +33,10 @@ final class SettingsStore: ObservableObject {
     }
 
     func reloadProfiles() {
-        profiles = ProfileDiscoveryService.discoverAll(customBrowsers: settings.customBrowsers)
+        let hidden = Set(settings.hiddenProfiles)
+        let discovered = ProfileDiscoveryService.discoverAll(customBrowsers: settings.customBrowsers)
+            .filter { !hidden.contains($0.routeTarget) }
+        profiles = Self.ordered(discovered, by: settings.profileOrder)
         migrateLegacySafariTargets()
         ensureDefaultTargetIsValid()
         PermissionMonitor.shared.refresh()
@@ -78,6 +81,47 @@ final class SettingsStore: ObservableObject {
         migrateLegacySafariTargets()
         ensureDefaultTargetIsValid()
         PermissionMonitor.shared.refresh()
+    }
+
+    /// User-triggered Refresh: also brings back any profiles the user removed.
+    func refreshProfiles() {
+        if !settings.hiddenProfiles.isEmpty {
+            updateSettings { $0.hiddenProfiles = [] }
+        }
+        reloadProfiles()
+    }
+
+    /// Hides a discovered profile (persisted) until the next Refresh.
+    func removeProfile(_ profile: BrowserProfile) {
+        updateSettings { $0.hiddenProfiles.append(profile.routeTarget) }
+        profiles.removeAll { $0.browser == profile.browser && $0.id == profile.id }
+        ensureDefaultTargetIsValid()
+    }
+
+    func moveProfile(_ moving: RouteTarget, onto target: RouteTarget) {
+        let reordered = Self.moving(moving, onto: target, in: profiles)
+        guard reordered != profiles else { return }
+        profiles = reordered
+        updateSettings { $0.profileOrder = reordered.map(\.routeTarget) }
+    }
+
+    /// Profiles in `order` come first, in that order; new ones keep discovery order after them.
+    nonisolated static func ordered(_ profiles: [BrowserProfile], by order: [RouteTarget]) -> [BrowserProfile] {
+        let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        return profiles.enumerated()
+            .sorted { (rank[$0.element.routeTarget] ?? .max, $0.offset) < (rank[$1.element.routeTarget] ?? .max, $1.offset) }
+            .map(\.element)
+    }
+
+    /// Moves `moving` into `target`'s slot (after it when dragging down, before it when dragging up).
+    /// Only reorders within the same browser.
+    nonisolated static func moving(_ moving: RouteTarget, onto target: RouteTarget, in profiles: [BrowserProfile]) -> [BrowserProfile] {
+        guard moving != target, moving.browser == target.browser,
+              let from = profiles.firstIndex(where: { $0.routeTarget == moving }),
+              let to = profiles.firstIndex(where: { $0.routeTarget == target }) else { return profiles }
+        var result = profiles
+        result.insert(result.remove(at: from), at: to)
+        return result
     }
 
     func save() {

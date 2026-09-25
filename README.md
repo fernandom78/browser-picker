@@ -58,6 +58,7 @@ brew install --cask mertizci/tap/browser-picker
   - Chromium browsers (Chrome, Edge, Brave, Vivaldi, Opera, Arc, and custom additions) — from each browser's `Local State`. Custom browsers are matched against a few common Chromium folder conventions automatically, with a manual override if detection misses.
   - Firefox — from `profiles.ini` and Firefox **Profile Groups** (selectable profile names).
   - Safari — from `SafariTabs.db`, with a **menu scan** fallback.
+- 🗂️ **Curate your profile list** — in Settings → Browsers, hide profiles you don't use (trash icon) and drag the ☰ handle to reorder a browser's profiles. See [Managing profiles](#managing-profiles).
 - 🧑‍🏫 **Guided onboarding** that requests and live-tracks the required permissions.
 - ✨ **Polished UI** — window-style menu bar popover, redesigned Settings, rule editor with live preview, built-in **FAQ** and **About**.
 - 🖼️ Native browser icons from installed apps, with Simple Icons SVG fallback.
@@ -113,7 +114,8 @@ Or press ⌘U in Xcode. What's covered:
 
 - **`RuleMatcherTests`** — `urlContains` / `hostEquals` / `hostSuffix` matching, including that a suffix rule for "company.com" doesn't also match an unrelated "evilcompany.com".
 - **`RuleEngineTests`** — priority ordering, skipping disabled rules, falling back to the default target, and a matched rule's `openPrivately` flag being surfaced correctly.
-- **`CodableCompatibilityTests`** — `BrowserIdentity` stays wire-compatible with old `config.json` files (a built-in browser still encodes as a plain string like `"chrome"`), and both `RoutingRule.openPrivately` and `AppSettings.customBrowsers` default correctly when decoding a config saved before those fields existed.
+- **`CodableCompatibilityTests`** — `BrowserIdentity` stays wire-compatible with old `config.json` files (a built-in browser still encodes as a plain string like `"chrome"`), and `RoutingRule.openPrivately`, `AppSettings.customBrowsers` and `AppSettings.hiddenProfiles` all default correctly when decoding a config saved before those fields existed.
+- **`ProfileOrderTests`** — applying a saved profile order (new profiles go at the end), moving a profile up or down, and ignoring drops across different browsers.
 - **`BrowserResolutionTests`** — per-browser private-mode flag resolution (this is the regression test for the Edge `--inprivate` vs `--incognito` bug found during development), and `BrowserIdentity.resolved(customBrowsers:)` for both built-in and custom browsers.
 - **`ChromiumLocalStateParserTests`** — parsing a real-shaped `Local State` file, including missing/malformed files and profiles with no `name` field.
 
@@ -132,6 +134,15 @@ Not every browser ships built in — Settings → Browsers → **Add Custom Brow
 - **Profile discovery** tries a few common Chromium folder conventions under `~/Library/Application Support` automatically. If a custom browser's profiles aren't detected, use **Set Profile Location…** on its card to point directly at its `Local State` file.
 - **Private/incognito mode** for a custom browser defaults to the `--incognito` flag, which the large majority of Chromium forks use. A few (Microsoft Edge, built in, is a known example) rename the feature and use a different flag — if a custom addition turns out to do the same, its rules just won't actually go private until that's added as a special case.
 - Removing a custom browser also removes any rules pointing at it.
+
+## Managing profiles
+
+Settings → Browsers lists every discovered profile, grouped by browser.
+
+- **Hide a profile** — click the trash icon on its row. It disappears from the picker and menu bar, and stays hidden across relaunches. Clicking **Refresh** (in Settings or the menu bar) brings all hidden profiles back. The profile itself is untouched in the browser.
+- **Reorder profiles** — drag the ☰ handle on the left of a row onto another row of the same browser. The picker and menu bar follow the same order, and it survives relaunches and Refresh. Newly discovered profiles are added at the end.
+
+Both are stored in `config.json` (`hiddenProfiles` and `profileOrder`).
 
 ## Private / incognito mode
 

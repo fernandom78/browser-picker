@@ -115,6 +115,14 @@ final class CodableCompatibilityTests: XCTestCase {
 
         let settings = try decoder.decode(AppSettings.self, from: json)
         XCTAssertEqual(settings.customBrowsers, [])
+        XCTAssertEqual(settings.hiddenProfiles, [])
+    }
+
+    func test_appSettings_roundTripsHiddenProfiles() throws {
+        var original = AppSettings.default
+        original.hiddenProfiles = [RouteTarget(browser: .builtIn(.chrome), profileId: "Profile 3")]
+        let decoded = try decoder.decode(AppSettings.self, from: encoder.encode(original))
+        XCTAssertEqual(decoded.hiddenProfiles, original.hiddenProfiles)
     }
 
     /// A full round-trip (encode then decode) of `AppSettings` with a
@@ -133,5 +141,30 @@ final class CodableCompatibilityTests: XCTestCase {
 
         XCTAssertEqual(decoded.customBrowsers, [custom])
         XCTAssertEqual(decoded.defaultTarget.browser, .custom(custom.id))
+    }
+}
+
+@MainActor
+final class ProfileOrderTests: XCTestCase {
+    private func p(_ id: String, _ kind: BrowserKind = .chrome) -> BrowserProfile {
+        BrowserProfile(id: id, displayName: id, browser: .builtIn(kind), profilePath: id, internalName: nil)
+    }
+    private func ids(_ profiles: [BrowserProfile]) -> [String] { profiles.map(\.id) }
+
+    func test_ordered_savedOrderFirst_newProfilesKeepDiscoveryOrder() {
+        let discovered = [p("A"), p("B"), p("C"), p("D")]
+        let order = [p("C").routeTarget, p("A").routeTarget, p("Gone").routeTarget]
+        XCTAssertEqual(ids(SettingsStore.ordered(discovered, by: order)), ["C", "A", "B", "D"])
+    }
+
+    func test_moving_downAndUp() {
+        let list = [p("A"), p("B"), p("C")]
+        XCTAssertEqual(ids(SettingsStore.moving(p("A").routeTarget, onto: p("C").routeTarget, in: list)), ["B", "C", "A"])
+        XCTAssertEqual(ids(SettingsStore.moving(p("C").routeTarget, onto: p("A").routeTarget, in: list)), ["C", "A", "B"])
+    }
+
+    func test_moving_acrossBrowsers_isNoOp() {
+        let list = [p("A"), p("B", .firefox)]
+        XCTAssertEqual(ids(SettingsStore.moving(p("A").routeTarget, onto: p("B", .firefox).routeTarget, in: list)), ["A", "B"])
     }
 }

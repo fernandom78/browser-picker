@@ -222,7 +222,7 @@ private struct BrowsersSettingsTab: View {
             subtitle: "Profiles discovered from installed browsers on this Mac.",
             icon: "globe",
             action: {
-                settingsStore.reloadProfiles()
+                settingsStore.refreshProfiles()
                 permissions.refresh()
             },
             actionTitle: "Refresh",
@@ -235,7 +235,7 @@ private struct BrowsersSettingsTab: View {
                     Text("Install Chrome, Firefox, or Safari, then refresh profiles.")
                 } actions: {
                     Button("Refresh Profiles") {
-                        settingsStore.reloadProfiles()
+                        settingsStore.refreshProfiles()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -504,9 +504,11 @@ private struct CustomBrowserRow: View {
 }
 
 private struct BrowserProfilesCard: View {
+    @EnvironmentObject private var settingsStore: SettingsStore
     let browser: BrowserIdentity
     let title: String
     let profiles: [BrowserProfile]
+    @State private var dropTargetID: String?
 
     var body: some View {
         SettingsCard(
@@ -515,9 +517,40 @@ private struct BrowserProfilesCard: View {
         ) {
             VStack(spacing: 0) {
                 ForEach(Array(profiles.enumerated()), id: \.element.id) { index, profile in
-                    ProfileSummaryRow(profile: profile)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 4)
+                    HStack {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 20, height: 28)
+                            .contentShape(Rectangle())
+                            .help("Drag to reorder")
+                            .draggable(dragKey(profile)) {
+                                ProfileSummaryRow(profile: profile)
+                                    .padding(8)
+                                    .frame(width: 260)
+                            }
+                        ProfileSummaryRow(profile: profile)
+                        Button(role: .destructive) {
+                            settingsStore.removeProfile(profile)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Hide this profile until the next Refresh")
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(dropTargetID == profile.id ? Color.accentColor.opacity(0.12) : .clear)
+                    )
+                    .dropDestination(for: String.self) { keys, _ in
+                        guard let key = keys.first,
+                              let dragged = profiles.first(where: { dragKey($0) == key }) else { return false }
+                        settingsStore.moveProfile(dragged.routeTarget, onto: profile.routeTarget)
+                        return true
+                    } isTargeted: { targeted in
+                        if targeted { dropTargetID = profile.id } else if dropTargetID == profile.id { dropTargetID = nil }
+                    }
 
                     if index < profiles.count - 1 {
                         Divider()
@@ -526,5 +559,10 @@ private struct BrowserProfilesCard: View {
                 }
             }
         }
+    }
+
+    /// Includes the browser so a same-named profile dragged from another browser's card doesn't match.
+    private func dragKey(_ profile: BrowserProfile) -> String {
+        "\(profile.browser)|\(profile.id)"
     }
 }

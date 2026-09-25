@@ -168,7 +168,7 @@ struct MenuBarContentView: View {
         }
 
         MenuRow(title: "Refresh Profiles", systemImage: "arrow.clockwise") {
-            settingsStore.reloadProfiles()
+            settingsStore.refreshProfiles()
             dismiss()
         }
 

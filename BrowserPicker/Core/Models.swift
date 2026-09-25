@@ -278,6 +278,10 @@ extension BrowserIdentity {
     }
 }
 
+extension BrowserProfile {
+    var routeTarget: RouteTarget { RouteTarget(browser: browser, profileId: id) }
+}
+
 struct BrowserProfile: Codable, Identifiable, Hashable {
     var id: String
     var displayName: String
@@ -426,6 +430,10 @@ struct AppSettings: Codable {
     /// Browsers the user added manually via Settings → Browsers → "Add
     /// Custom Browser…", beyond the native `BrowserKind` list.
     var customBrowsers: [CustomBrowser]
+    /// Discovered profiles the user removed from the list; cleared by Refresh.
+    var hiddenProfiles: [RouteTarget] = []
+    /// User-chosen profile order from Settings → Browsers drag and drop.
+    var profileOrder: [RouteTarget] = []
 
     static var `default`: AppSettings {
         AppSettings(
@@ -440,7 +448,7 @@ struct AppSettings: Codable {
     // `customBrowsers` existed) still load — a missing key just defaults to
     // an empty array instead of failing to decode the whole settings file.
     enum CodingKeys: String, CodingKey {
-        case fallbackMode, defaultTarget, rules, customBrowsers
+        case fallbackMode, defaultTarget, rules, customBrowsers, hiddenProfiles, profileOrder
     }
 
     init(fallbackMode: FallbackMode, defaultTarget: RouteTarget, rules: [RoutingRule], customBrowsers: [CustomBrowser]) {
@@ -456,6 +464,8 @@ struct AppSettings: Codable {
         defaultTarget = try container.decode(RouteTarget.self, forKey: .defaultTarget)
         rules = try container.decode([RoutingRule].self, forKey: .rules)
         customBrowsers = try container.decodeIfPresent([CustomBrowser].self, forKey: .customBrowsers) ?? []
+        hiddenProfiles = try container.decodeIfPresent([RouteTarget].self, forKey: .hiddenProfiles) ?? []
+        profileOrder = try container.decodeIfPresent([RouteTarget].self, forKey: .profileOrder) ?? []
     }
 }
 
